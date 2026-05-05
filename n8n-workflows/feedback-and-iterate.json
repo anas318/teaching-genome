@@ -1,0 +1,353 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "teaching-genome/feedback",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-feedback",
+      "name": "Webhook - Weekly Feedback",
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "66ba0034-8c16-4f4d-8ee9-0d07d05ed587"
+    },
+    {
+      "parameters": {
+        "tableId": "feedback_journals",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "course_id",
+              "fieldValue": "={{ $json.body.course_id }}"
+            },
+            {
+              "fieldId": "week_number",
+              "fieldValue": "={{ $json.body.week_number }}"
+            },
+            {
+              "fieldId": "lecturer_reflection",
+              "fieldValue": "={{ $json.body.reflection_text }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "submitted"
+            }
+          ]
+        }
+      },
+      "id": "store-feedback",
+      "name": "Store Feedback",
+      "position": [
+        304,
+        0
+      ],
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "credentials": {
+        "supabaseApi": {
+          "id": "eHHXhURm2Aj97kMJ",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "loop-weeks",
+      "name": "Loop - Affected Weeks",
+      "position": [
+        1200,
+        0
+      ],
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "weeks",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "course_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Code in JavaScript').item.json.course_id }}"
+            },
+            {
+              "keyName": "week_number",
+              "condition": "eq",
+              "keyValue": "={{ $('Code in JavaScript').item.json.week_number }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "teaching_notes",
+              "fieldValue": "={{ $('Code in JavaScript').item.json.teaching_notes }}"
+            },
+            {
+              "fieldId": "discussion_prompts",
+              "fieldValue": "={{ JSON.stringify($('Code in JavaScript').item.json.discussion_prompts) }}"
+            },
+            {
+              "fieldId": "activity_ideas",
+              "fieldValue": "={{ JSON.stringify($('Code in JavaScript').item.json.activity_ideas) }}\n"
+            }
+          ]
+        }
+      },
+      "id": "store-updated",
+      "name": "Store Updated Week",
+      "position": [
+        1760,
+        16
+      ],
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "credentials": {
+        "supabaseApi": {
+          "id": "eHHXhURm2Aj97kMJ",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, message: \"Feedback processed. Weeks updated and ready for review.\" }) }}",
+        "options": {}
+      },
+      "id": "respond-processed",
+      "name": "Return Processed",
+      "position": [
+        2128,
+        48
+      ],
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.0-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.0-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an expert educational analyst. A lecturer submitted weekly feedback   \n  about their teaching experience.\n                                                                                \n  Course ID: {{ $('Webhook - Weekly Feedback').item.json.body.course_id }}\n  Week: {{ $('Webhook - Weekly Feedback').item.json.body.week_number }}\n  Lecturer Reflection: {{ $json.body.reflection_text }}\n\n  Analyze this feedback and extract key issues. Return ONLY a raw JSON object\n  with no markdown:\n  {\n    \"concept_struggles\": [\"string - concepts students found difficult\"],\n    \"timing_issues\": [\"string - pacing or time management problems\"],\n    \"engagement_notes\": [\"string - what worked or did not work for engagement\"],\n    \"suggestions\": [\"string - lecturer suggestions for improvement\"],\n    \"affected_weeks\": [5, 6, 7]\n  }\n\n  Rules:\n  - Each array must have 1 to 4 items\n  - affected_weeks must list week numbers AFTER the current week that need\n  adjustment based on the feedback\n  - Do not use apostrophes or contractions\n  - Output must be parseable by JSON.parse()\n\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        528,
+        0
+      ],
+      "id": "7ae52405-77d6-4958-a774-7fac18f506bc",
+      "name": "extract issues",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "q4jftlU0gcxAxauk",
+          "name": "Google Gemini(PaLM) Api account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.0-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.0-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "= You are an expert curriculum designer. Regenerate the teaching content for\n  week {{ $json.week_number }}.\n\n  Current issues to address:\n  - Teaching notes: {{ $json.teaching_notes }}\n  - Discussion prompts: {{ JSON.stringify($json.discussion_prompts) }}\n\n  Expand and improve this content. Return ONLY a raw JSON object with no\n  markdown:\n  {\n    \"week_number\": {{ $json.week_number }},\n    \"teaching_notes\": \"string - comprehensive 2-3 paragraph teaching strategy\n  with timing breakdown, engagement techniques, real-world examples, and how to\n  address student struggles\",\n    \"discussion_prompts\": [\"string\", \"string\", \"string\"],\n    \"activity_ideas\": [\"string - detailed activity with step-by-step\n  instructions\", \"string\", \"string\"]\n  }\n\n  Rules:\n  - teaching_notes must be detailed and actionable for the lecturer\n  - Do not use apostrophes or contractions\n  - Output must be parseable by JSON.parse()"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        1440,
+        -32
+      ],
+      "id": "5b0600b7-2253-4203-8ba0-974caac4b994",
+      "name": "regnrate week content",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "q4jftlU0gcxAxauk",
+          "name": "Google Gemini(PaLM) Api account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": " const raw = $input.first().json.content.parts[0].text;                        \n        \n  let cleaned = raw                                                             \n    .replace(/```json\\n?/g, '')\n    .replace(/```\\n?/g, '')                                                     \n    .trim();                                                                    \n\n  const arrayMatch = cleaned.match(/\\[[\\s\\S]*\\]/);\n  if (!arrayMatch) throw new Error('No JSON array found');\n  cleaned = arrayMatch[0];\n\n  const weeks = JSON.parse(cleaned);\n\n  return weeks.map(week => {\n    const prompts = Array.isArray(week.discussion_prompts) ?\n  week.discussion_prompts : [];\n    const activities = Array.isArray(week.activity_ideas) ? week.activity_ideas\n  : [];\n    return { json: {\n      course_id: $('Webhook - Weekly Feedback').item.json.body.course_id,\n      week_number: week.week_number,\n      teaching_notes: week.teaching_notes || '',\n      discussion_prompts: prompts,\n      activity_ideas: activities\n    } };\n  });\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "36c37bb2-4d9a-4f93-96b9-3f185f437c1d",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.0-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.0-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "= You are an expert curriculum advisor. Based on lecturer feedback from week {{\n  $('Webhook - Weekly Feedback').item.json.body.week_number }}, generate updated\n   content for the affected weeks.\n\n  Feedback issues identified:\n {{ $('extract issues').first().json.content.parts[0].text }} \n  Course ID: {{ $('Webhook - Weekly Feedback').item.json.body.course_id }}\n\n  Generate adjusted content for each affected week. Return ONLY a raw JSON array\n   with no markdown:\n  [\n    {\n      \"week_number\": 5,\n      \"teaching_notes\": \"string - updated detailed teaching strategy addressing\n  the feedback issues, including how to adjust delivery, what to reinforce, and\n  how to handle student struggles\",\n      \"discussion_prompts\": [\"string - updated discussion question\", \"string\",\n  \"string\"],\n      \"activity_ideas\": [\"string - specific activity addressing the feedback\",\n  \"string\"]\n    }\n  ]\n\n  Rules:\n  - Only include weeks that genuinely need changes based on the feedback\n  - teaching_notes must directly address the issues raised in the feedback\n  - discussion_prompts must have 3 to 5 items per week\n  - activity_ideas must have 2 to 3 items per week\n  - Do not use apostrophes or contractions\n  - Output must be parseable by JSON.parse()"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        768,
+        0
+      ],
+      "id": "bc0f6743-220d-4931-8773-55fac098a27e",
+      "name": "genrate adjustemnt",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "q4jftlU0gcxAxauk",
+          "name": "Google Gemini(PaLM) Api account 5"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook - Weekly Feedback": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Store Feedback",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Store Feedback": {
+      "main": [
+        [
+          {
+            "node": "extract issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop - Affected Weeks": {
+      "main": [
+        [
+          {
+            "node": "regnrate week content",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Updated Week": {
+      "main": [
+        [
+          {
+            "node": "Loop - Affected Weeks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "extract issues": {
+      "main": [
+        [
+          {
+            "node": "genrate adjustemnt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "regnrate week content": {
+      "main": [
+        [
+          {
+            "node": "Store Updated Week",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Loop - Affected Weeks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "genrate adjustemnt": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c17f00b34868276d94ac12e8d2f1d58624e5971e1bc161a8f1af63ff755dd073"
+  }
+}

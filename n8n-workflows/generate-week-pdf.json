@@ -1,0 +1,189 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "teaching-genome/generate-pdf",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-pdf",
+      "name": "Webhook - Generate PDF",
+      "position": [
+        -352,
+        0
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "021500ec-7b6d-4c4d-8ff8-d947666adb7a"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "weeks",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "course_id",
+              "keyValue": "={{ $json.body.course_id }}"
+            },
+            {
+              "keyName": "week_number",
+              "keyValue": "={{ $json.body.week_number }}"
+            }
+          ]
+        }
+      },
+      "id": "fetch-week",
+      "name": "Fetch Week Data",
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "credentials": {
+        "supabaseApi": {
+          "id": "eHHXhURm2Aj97kMJ",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "cachedResultName": "models/gemini-2.5-flash",
+          "mode": "list",
+          "value": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a university professor. Create detailed lecture slide content for this week.\nWeek: {{ $json.week_number }}\nTopic: {{ $json.topic }}\nLearning Objectives: {{ Array.isArray($json.learning_objectives) ? $json.learning_objectives.join(', ') : $json.learning_objectives }}\n\nCRITICAL FORMATTING RULES:\n1. Use SECTION: as the ONLY header format. Example: SECTION: Introduction\n2. Do NOT use markdown (no ###, no **, no *, no ```)\n3. Do NOT use LaTeX math notation\n4. Do NOT use tables\n5. Use plain text bullet points with dash prefix: - bullet point\n6. Separate sections clearly with blank lines\n7. Write 8-12 sections\n8. Each section should have 3-6 bullet points or 2-3 paragraphs of plain text\n\nSTRUCTURE:\nSECTION: Title\nContent: Week {{ $json.week_number }}: {{ $json.topic }}\n\nSECTION: Learning Objectives\n{{ Array.isArray($json.learning_objectives) ? $json.learning_objectives.map(o => '- ' + o).join('\\n') : '- ' + $json.learning_objectives }}\n\nSECTION: Introduction\n[2-3 paragraphs introducing the topic]\n\nSECTION: [Key Concept 1]\n[2-3 paragraphs or 3-6 bullet points]\n\nSECTION: [Key Concept 2]\n[2-3 paragraphs or 3-6 bullet points]\n\nSECTION: [Key Concept 3]\n[2-3 paragraphs or 3-6 bullet points]\n\nSECTION: Real-World Applications\n- Application 1 with explanation\n- Application 2 with explanation\n- Application 3 with explanation\n\nSECTION: Discussion Points\n- Discussion question 1\n- Discussion question 2\n- Discussion question 3\n\nSECTION: Summary\n[2-3 paragraphs summarizing key takeaways]\n\nMake it comprehensive, lecturer-ready, and plain text only."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "a3694f17-f025-4f09-b50d-e4a2e6bb1bc5",
+      "name": "genrate pdf",
+      "position": [
+        272,
+        0
+      ],
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "q4jftlU0gcxAxauk",
+          "name": "Google Gemini(PaLM) Api account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "var gemini = items[0].json;\nvar week = $('Fetch Week Data').first().json;\n\nvar content = (gemini.content && gemini.content.parts && gemini.content.parts[0] && gemini.content.parts[0].text)\n  || (gemini.parts && gemini.parts[0] && gemini.parts[0].text)\n  || gemini.text\n  || JSON.stringify(gemini);\n\nif (typeof content !== 'string') content = JSON.stringify(content);\ncontent = content.replace(/\\\\n/g, '\\n');\n\nvar weekNum = week.week_number || 1;\nvar topic = String(week.topic || 'Untitled');\nvar teachingNotes = String(week.teaching_notes || '');\n\nfunction parseArr(d) {\n  if (!d) return [];\n  if (Array.isArray(d)) return d.map(String);\n  if (typeof d === 'string') {\n    try {\n      var p = JSON.parse(d);\n      return Array.isArray(p) ? p.map(String) : [d];\n    } catch(e) { return [d]; }\n  }\n  return [];\n}\n\nvar objectives = parseArr(week.learning_objectives);\nvar prompts = parseArr(week.discussion_prompts);\nvar activities = parseArr(week.activity_ideas);\n\nfunction esc(s) {\n  return String(s || '').replace(/[\\\\()]/g, function(m) { return '\\\\' + m; }).replace(/[^\\x20-\\x7E]/g, '');\n}\n\nfunction wrap(text, maxLen) {\n  var words = String(text).split(' ');\n  var lines = [];\n  var line = '';\n  for (var i = 0; i < words.length; i++) {\n    if ((line + words[i]).length > maxLen && line) {\n      lines.push(line.trim());\n      line = words[i] + ' ';\n    } else {\n      line += words[i] + ' ';\n    }\n  }\n  if (line.trim()) lines.push(line.trim());\n  return lines;\n}\n\nvar BLUE   = '0.0 0.4 0.8';\nvar DARK   = '0.13 0.13 0.16';\nvar MID    = '0.35 0.35 0.4';\nvar GREEN  = '0.15 0.68 0.38';\nvar ORANGE = '0.9 0.5 0.13';\nvar PURPLE = '0.56 0.27 0.68';\nvar LINE_C = '0.85 0.85 0.88';\n\nvar pages = [];\n\nfunction newPage() {\n  var p = { cmds: [], y: 790 };\n  pages.push(p);\n  return p;\n}\n\nfunction addFooter(p) {\n  p.cmds.push(LINE_C + ' RG 0.3 w 50 42 m 545 42 l S');\n  p.cmds.push('0.65 0.65 0.68 rg');\n  p.cmds.push('BT /F1 7 Tf 50 30 Td (Teaching Genome  |  Week ' + weekNum + '  |  Page ' + pages.length + ') Tj ET');\n}\n\nfunction addTextBlock(p, text, fs, color, indent) {\n  fs = fs || 10;\n  indent = indent || 50;\n  var maxC = Math.floor((495 - (indent - 50)) / (fs * 0.48));\n  var tLines = String(text).split('\\n');\n  for (var t = 0; t < tLines.length; t++) {\n    var wl = wrap(tLines[t], maxC);\n    if (wl.length === 0) { p.y -= 8; continue; }\n    for (var w = 0; w < wl.length; w++) {\n      if (p.y < 60) { addFooter(p); p = newPage(); }\n      p.cmds.push((color || DARK) + ' rg');\n      p.cmds.push('BT /F1 ' + fs + ' Tf ' + indent + ' ' + p.y + ' Td (' + esc(wl[w]) + ') Tj ET');\n      p.y -= (fs + 4);\n    }\n  }\n  return p;\n}\n\nfunction addBullets(p, items, color) {\n  for (var i = 0; i < items.length; i++) {\n    if (p.y < 60) { addFooter(p); p = newPage(); }\n    p.cmds.push((color || BLUE) + ' rg');\n    p.cmds.push('50 ' + (p.y + 2) + ' 5 5 re f');\n    var bl = wrap(items[i], 72);\n    for (var b = 0; b < bl.length; b++) {\n      if (p.y < 55) { addFooter(p); p = newPage(); }\n      p.cmds.push(DARK + ' rg');\n      p.cmds.push('BT /F1 10 Tf 62 ' + p.y + ' Td (' + esc(bl[b]) + ') Tj ET');\n      p.y -= 14;\n    }\n    p.y -= 3;\n  }\n  return p;\n}\n\nfunction sectionTitle(p, title, color) {\n  if (p.y < 120) { addFooter(p); p = newPage(); }\n  p.cmds.push(LINE_C + ' RG 0.3 w 50 ' + p.y + ' m 545 ' + p.y + ' l S');\n  p.y -= 22;\n  p.cmds.push((color || BLUE) + ' rg');\n  p.cmds.push('BT /F2 13 Tf 50 ' + p.y + ' Td (' + esc(title) + ') Tj ET');\n  p.y -= 20;\n  return p;\n}\n\n// PAGE 1: Title\nvar p = newPage();\np.cmds.push('0.0 0.3 0.65 rg');\np.cmds.push('0 750 595.28 91.89 re f');\np.cmds.push('1 1 1 rg');\np.cmds.push('BT /F2 28 Tf 50 780 Td (Week ' + weekNum + ') Tj ET');\np.cmds.push('0.7 0.85 1 rg');\np.cmds.push('BT /F1 14 Tf 50 758 Td (Teaching Genome) Tj ET');\np.y = 710;\np.cmds.push(DARK + ' rg');\np.cmds.push('BT /F2 20 Tf 50 ' + p.y + ' Td (' + esc(topic) + ') Tj ET');\np.y -= 10;\np.cmds.push(BLUE + ' RG 1 w 50 ' + p.y + ' m 200 ' + p.y + ' l S');\np.y -= 30;\n\nif (objectives.length > 0) { p = sectionTitle(p, 'LEARNING OBJECTIVES', GREEN); p = addBullets(p, objectives, GREEN); p.y -= 10; }\nif (prompts.length > 0)    { p = sectionTitle(p, 'DISCUSSION TOPICS', BLUE);     p = addBullets(p, prompts, BLUE);     p.y -= 10; }\n\nif (activities.length > 0) {\n  p = sectionTitle(p, 'ACTIVITIES', ORANGE);\n  for (var a = 0; a < activities.length; a++) {\n    if (p.y < 60) { addFooter(p); p = newPage(); }\n    p.cmds.push(ORANGE + ' rg');\n    p.cmds.push('BT /F2 10 Tf 50 ' + p.y + ' Td (' + (a + 1) + '.) Tj ET');\n    var al = wrap(activities[a], 72);\n    for (var x = 0; x < al.length; x++) {\n      p.cmds.push(DARK + ' rg');\n      p.cmds.push('BT /F1 10 Tf 70 ' + p.y + ' Td (' + esc(al[x]) + ') Tj ET');\n      p.y -= 14;\n    }\n    p.y -= 4;\n  }\n}\naddFooter(p);\n\n// GEMINI CONTENT PAGES\nvar contentLines = content.split('\\n');\nvar sections = [];\nvar curT = 'Lecture Content';\nvar curB = [];\n\nfor (var i = 0; i < contentLines.length; i++) {\n  var ln = contentLines[i].trim();\n  if (ln.match(/^SECTION:\\s+/) || ln.match(/^#{1,3}\\s+/) || ln.match(/^\\*\\*[^*]+\\*\\*$/)) {\n    if (curB.length > 0) sections.push({ title: curT, body: curB.join('\\n').trim() });\n    curT = ln.replace(/^SECTION:\\s+/, '').replace(/^#{1,3}\\s+/, '').replace(/^\\*\\*/, '').replace(/\\*\\*$/, '').trim();\n    curB = [];\n  } else if (ln.length > 0) {\n    curB.push(ln);\n  }\n}\nif (curB.length > 0) sections.push({ title: curT, body: curB.join('\\n').trim() });\nif (sections.length === 0) sections.push({ title: 'Lecture Content', body: content });\n\nvar colors = [BLUE, GREEN, PURPLE, ORANGE];\n\nfor (var s = 0; s < sections.length; s++) {\n  var sec = sections[s];\n  if (!sec.body.trim()) continue;\n  p = newPage();\n  var sc = colors[s % 4];\n  p.cmds.push(sc + ' rg');\n  p.cmds.push('0 800 595.28 41.89 re f');\n  p.cmds.push('1 1 1 rg');\n  p.cmds.push('BT /F2 18 Tf 50 812 Td (' + esc(sec.title) + ') Tj ET');\n  p.y = 775;\n\n  var bLines = sec.body.split('\\n');\n  for (var b = 0; b < bLines.length; b++) {\n    var bl = bLines[b].trim();\n    if (!bl) { p.y -= 8; continue; }\n    if (bl.match(/^[-\\*]\\s+/)) {\n      var bt = bl.replace(/^[-\\*]\\s+/, '').replace(/^\\*\\*/, '').replace(/\\*\\*/g, '');\n      if (p.y < 60) { addFooter(p); p = newPage(); }\n      p.cmds.push(sc + ' rg');\n      p.cmds.push('55 ' + (p.y + 2) + ' 4 4 re f');\n      var bw = wrap(bt, 72);\n      for (var w = 0; w < bw.length; w++) {\n        if (p.y < 55) { addFooter(p); p = newPage(); }\n        p.cmds.push(DARK + ' rg');\n        p.cmds.push('BT /F1 10 Tf 66 ' + p.y + ' Td (' + esc(bw[w]) + ') Tj ET');\n        p.y -= 14;\n      }\n      p.y -= 2;\n    } else {\n      var clean = bl.replace(/\\*\\*/g, '');\n      p = addTextBlock(p, clean, 10, DARK, 50);\n      p.y -= 2;\n    }\n  }\n  addFooter(p);\n}\n\n// TEACHING NOTES PAGE\nif (teachingNotes) {\n  p = newPage();\n  p.cmds.push(PURPLE + ' rg');\n  p.cmds.push('0 800 595.28 41.89 re f');\n  p.cmds.push('1 1 1 rg');\n  p.cmds.push('BT /F2 18 Tf 50 812 Td (Teaching Strategy) Tj ET');\n  p.y = 775;\n  p = addTextBlock(p, teachingNotes, 10, MID, 50);\n  addFooter(p);\n}\n\n// ASSEMBLE PDF\nvar pageContents = [];\nfor (var i = 0; i < pages.length; i++) pageContents.push(pages[i].cmds.join('\\n'));\n\nvar pdf = '%PDF-1.4\\n';\nvar offsets = [];\n\nfunction addObj(ct) {\n  offsets.push(pdf.length);\n  pdf += ct + '\\n';\n}\n\naddObj('1 0 obj\\n<< /Type /Catalog /Pages 2 0 R >>\\nendobj');\n\nvar kids = [];\nfor (var i = 0; i < pages.length; i++) kids.push((3 + i * 2) + ' 0 R');\naddObj('2 0 obj\\n<< /Type /Pages /Kids [' + kids.join(' ') + '] /Count ' + pages.length + ' >>\\nendobj');\n\nvar f1 = 3 + pages.length * 2;\nvar f2 = f1 + 1;\n\nfor (var i = 0; i < pages.length; i++) {\n  var pid = 3 + i * 2;\n  var cid = 4 + i * 2;\n  addObj(pid + ' 0 obj\\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents ' + cid + ' 0 R /Resources << /Font << /F1 ' + f1 + ' 0 R /F2 ' + f2 + ' 0 R >> >> >>\\nendobj');\n  addObj(cid + ' 0 obj\\n<< /Length ' + pageContents[i].length + ' >>\\nstream\\n' + pageContents[i] + '\\nendstream\\nendobj');\n}\n\naddObj(f1 + ' 0 obj\\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\\nendobj');\naddObj(f2 + ' 0 obj\\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\\nendobj');\n\nvar total = f2 + 1;\nvar xref = pdf.length;\npdf += 'xref\\n0 ' + total + '\\n0000000000 65535 f \\n';\nfor (var i = 0; i < offsets.length; i++) pdf += String(offsets[i]).padStart(10, '0') + ' 00000 n \\n';\npdf += 'trailer\\n<< /Size ' + total + ' /Root 1 0 R >>\\nstartxref\\n' + xref + '\\n%%EOF';\n\nreturn [{ json: { pdfData: pdf, fileName: 'Week_' + weekNum + '_Slides.pdf' } }];"
+      },
+      "id": "format-pdf",
+      "name": "Build pdf",
+      "position": [
+        752,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "const pdfData = $input.first().json.pdfData;\nconst fileName = $input.first().json.fileName || 'slides.pdf';\nconst pdfBuffer = Buffer.from(pdfData, 'latin1');\nconst binaryData = await this.helpers.prepareBinaryData(pdfBuffer, fileName, 'application/pdf');\nreturn [{ json: { fileName }, binary: { data: binaryData } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        -32
+      ],
+      "id": "636a3801-c7b4-43c9-a3d1-532c544b63a9",
+      "name": "retun pdf"
+    },
+    {
+      "parameters": {
+        "respondWith": "binary",
+        "responseDataSource": "set",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1264,
+        0
+      ],
+      "id": "12350222-9e26-4bce-92b6-cb1810738f3a",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "connections": {
+    "Webhook - Generate PDF": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Fetch Week Data",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Fetch Week Data": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "genrate pdf",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "genrate pdf": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Build pdf",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Build pdf": {
+      "main": [
+        [
+          {
+            "node": "retun pdf",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "retun pdf": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c17f00b34868276d94ac12e8d2f1d58624e5971e1bc161a8f1af63ff755dd073"
+  }
+}

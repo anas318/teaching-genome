@@ -1,0 +1,150 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "teaching-genome/generate-slides",
+        "responseMode": "lastNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "slides-webhook",
+      "name": "Webhook - Slides",
+      "position": [
+        -352,
+        400
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "a1b2c3d4-slides-gen"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "weeks",
+        "returnAll": false,
+        "limit": 1,
+        "filterType": "string",
+        "filterString": "course_id=eq.{{ $json.body.course_id }}&week_number=eq.{{ $json.body.week_number }}"
+      },
+      "id": "fetch-week",
+      "name": "Fetch Week",
+      "position": [
+        -100,
+        400
+      ],
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "credentials": {
+        "supabaseApi": {
+          "id": "eHHXhURm2Aj97kMJ",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "courses",
+        "returnAll": false,
+        "limit": 1,
+        "filterType": "string",
+        "filterString": "id=eq.{{ $('Webhook - Slides').item.json.body.course_id }}"
+      },
+      "id": "fetch-course",
+      "name": "Fetch Course",
+      "position": [
+        150,
+        400
+      ],
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "credentials": {
+        "supabaseApi": {
+          "id": "eHHXhURm2Aj97kMJ",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "var zlib = require('zlib');\n\nvar weekData = $('Fetch Week').first().json;\nvar courseData = $('Fetch Course').first().json;\n\nvar moduleName = courseData.module_name || 'Course';\nvar moduleCode = courseData.module_code || '';\nvar weekNum = weekData.week_number || 1;\nvar topic = weekData.topic || 'Untitled';\n\nfunction parseArr(d) {\n  if (!d) return [];\n  if (Array.isArray(d)) return d.map(String);\n  if (typeof d === 'string') { try { var p = JSON.parse(d); return Array.isArray(p) ? p.map(String) : [d]; } catch(e) { return [d]; } }\n  return [];\n}\n\nvar objectives = parseArr(weekData.learning_objectives);\nvar prompts = parseArr(weekData.discussion_prompts);\nvar activities = parseArr(weekData.activity_ideas);\nvar teachingNotes = weekData.teaching_notes || '';\nvar teachingMethods = weekData.teaching_methods || '';\n\nfunction esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;'); }\n\n// ---- Build slides ----\nvar slides = [];\n\n// Slide 1: Title\nslides.push('<p:sld xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\"><p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val=\"1E3A5F\"/></a:solidFill><a:effectLst/></p:bgPr></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id=\"1\" name=\"\"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>' +\n'<p:sp><p:nvSpPr><p:cNvPr id=\"2\" name=\"code\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x=\"914400\" y=\"1371600\"/><a:ext cx=\"7315200\" cy=\"457200\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/></p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang=\"en-US\" sz=\"1800\" dirty=\"0\"><a:solidFill><a:srgbClr val=\"A0C4E8\"/></a:solidFill></a:rPr><a:t>' + esc(moduleCode) + '</a:t></a:r></a:p></p:txBody></p:sp>' +\n'<p:sp><p:nvSpPr><p:cNvPr id=\"3\" name=\"title\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x=\"914400\" y=\"1828800\"/><a:ext cx=\"7315200\" cy=\"914400\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/></p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang=\"en-US\" sz=\"3200\" b=\"1\" dirty=\"0\"><a:solidFill><a:srgbClr val=\"FFFFFF\"/></a:solidFill></a:rPr><a:t>' + esc(moduleName) + '</a:t></a:r></a:p></p:txBody></p:sp>' +\n'<p:sp><p:nvSpPr><p:cNvPr id=\"4\" name=\"week\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x=\"914400\" y=\"3200400\"/><a:ext cx=\"7315200\" cy=\"457200\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/></p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang=\"en-US\" sz=\"2000\" dirty=\"0\"><a:solidFill><a:srgbClr val=\"A0C4E8\"/></a:solidFill></a:rPr><a:t>Week ' + weekNum + '</a:t></a:r></a:p></p:txBody></p:sp>' +\n'<p:sp><p:nvSpPr><p:cNvPr id=\"5\" name=\"topic\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x=\"914400\" y=\"3657600\"/><a:ext cx=\"7315200\" cy=\"914400\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/></p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang=\"en-US\" sz=\"2400\" b=\"1\" dirty=\"0\"><a:solidFill><a:srgbClr val=\"FFFFFF\"/></a:solidFill></a:rPr><a:t>' + esc(topic) + '</a:t></a:r></a:p></p:txBody></p:sp>' +\n'</p:spTree></p:cSld></p:sld>');\n\n// Helper: bullet slide\nfunction bulletSlide(title, items, bgColor, titleColor, bulletColor) {\n  var bullets = '';\n  for (var i = 0; i < items.length; i++) {\n    bullets += '<a:p><a:pPr marL=\"342900\" indent=\"-342900\"><a:buChar char=\"&#x2022;\"/></a:pPr><a:r><a:rPr lang=\"en-US\" sz=\"1600\" dirty=\"0\"><a:solidFill><a:srgbClr val=\"333333\"/></a:solidFill></a:rPr><a:t>' + esc(items[i]) + '</a:t></a:r></a:p>';\n  }\n  return '<p:sld xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\"><p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val=\"FFFFFF\"/></a:solidFill><a:effectLst/></p:bgPr></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id=\"1\" name=\"\"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>' +\n  '<p:sp><p:nvSpPr><p:cNvPr id=\"2\" name=\"bar\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"9144000\" cy=\"1097280\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val=\"' + titleColor + '\"/></a:solidFill></p:spPr><p:txBody><a:bodyPr anchor=\"ctr\"/><a:lstStyle/><a:p><a:pPr marL=\"457200\"/><a:r><a:rPr lang=\"en-US\" sz=\"2800\" b=\"1\" dirty=\"0\"><a:solidFill><a:srgbClr val=\"FFFFFF\"/></a:solidFill></a:rPr><a:t>' + esc(title) + '</a:t></a:r></a:p></p:txBody></p:sp>' +\n  '<p:sp><p:nvSpPr><p:cNvPr id=\"3\" name=\"body\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x=\"457200\" y=\"1371600\"/><a:ext cx=\"8229600\" cy=\"4800600\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/></p:spPr><p:txBody><a:bodyPr wrap=\"square\"/><a:lstStyle/>' + bullets + '</p:txBody></p:sp>' +\n  '</p:spTree></p:cSld></p:sld>';\n}\n\n// Helper: text slide\nfunction textSlide(title, text, titleColor) {\n  return '<p:sld xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\"><p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val=\"FFFFFF\"/></a:solidFill><a:effectLst/></p:bgPr></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id=\"1\" name=\"\"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>' +\n  '<p:sp><p:nvSpPr><p:cNvPr id=\"2\" name=\"bar\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"9144000\" cy=\"1097280\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val=\"' + titleColor + '\"/></a:solidFill></p:spPr><p:txBody><a:bodyPr anchor=\"ctr\"/><a:lstStyle/><a:p><a:pPr marL=\"457200\"/><a:r><a:rPr lang=\"en-US\" sz=\"2800\" b=\"1\" dirty=\"0\"><a:solidFill><a:srgbClr val=\"FFFFFF\"/></a:solidFill></a:rPr><a:t>' + esc(title) + '</a:t></a:r></a:p></p:txBody></p:sp>' +\n  '<p:sp><p:nvSpPr><p:cNvPr id=\"3\" name=\"body\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x=\"457200\" y=\"1371600\"/><a:ext cx=\"8229600\" cy=\"4800600\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/></p:spPr><p:txBody><a:bodyPr wrap=\"square\"/><a:lstStyle/><a:p><a:r><a:rPr lang=\"en-US\" sz=\"1500\" dirty=\"0\"><a:solidFill><a:srgbClr val=\"333333\"/></a:solidFill></a:rPr><a:t>' + esc(text) + '</a:t></a:r></a:p></p:txBody></p:sp>' +\n  '</p:spTree></p:cSld></p:sld>';\n}\n\n// Slide 2: Learning Objectives\nif (objectives.length > 0) slides.push(bulletSlide('Learning Objectives', objectives, 'FFFFFF', '27AE60', '27AE60'));\n\n// Slide 3: Discussion Topics\nif (prompts.length > 0) slides.push(bulletSlide('Discussion Topics', prompts, 'FFFFFF', '2B6CB0', '2B6CB0'));\n\n// Slide 4: Teaching Strategy\nif (teachingNotes) slides.push(textSlide('Teaching Strategy', teachingNotes, '8E44AD'));\n\n// Slide 5: Teaching Method\nif (teachingMethods) slides.push(textSlide('Teaching Method', teachingMethods, '6C3483'));\n\n// Slide 6: Activities\nif (activities.length > 0) slides.push(bulletSlide('Activities', activities, 'FFFFFF', 'E67E22', 'E67E22'));\n\n// Slide 7: Summary\nvar summaryBullets = objectives.slice(0, 5);\nif (summaryBullets.length > 0) {\n  var sumBullets = '';\n  for (var i = 0; i < summaryBullets.length; i++) {\n    sumBullets += '<a:p><a:pPr marL=\"342900\" indent=\"-342900\"><a:buChar char=\"&#x2713;\"/></a:pPr><a:r><a:rPr lang=\"en-US\" sz=\"1600\" dirty=\"0\"><a:solidFill><a:srgbClr val=\"FFFFFF\"/></a:solidFill></a:rPr><a:t>' + esc(summaryBullets[i]) + '</a:t></a:r></a:p>';\n  }\n  slides.push('<p:sld xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\"><p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val=\"1E3A5F\"/></a:solidFill><a:effectLst/></p:bgPr></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id=\"1\" name=\"\"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>' +\n  '<p:sp><p:nvSpPr><p:cNvPr id=\"2\" name=\"t\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x=\"914400\" y=\"1371600\"/><a:ext cx=\"7315200\" cy=\"914400\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/></p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:pPr algn=\"ctr\"/><a:r><a:rPr lang=\"en-US\" sz=\"3200\" b=\"1\" dirty=\"0\"><a:solidFill><a:srgbClr val=\"FFFFFF\"/></a:solidFill></a:rPr><a:t>Key Takeaways</a:t></a:r></a:p></p:txBody></p:sp>' +\n  '<p:sp><p:nvSpPr><p:cNvPr id=\"3\" name=\"b\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x=\"1371600\" y=\"2514600\"/><a:ext cx=\"6400800\" cy=\"3200400\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/></p:spPr><p:txBody><a:bodyPr wrap=\"square\"/><a:lstStyle/>' + sumBullets + '</p:txBody></p:sp>' +\n  '<p:sp><p:nvSpPr><p:cNvPr id=\"4\" name=\"f\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x=\"914400\" y=\"6172200\"/><a:ext cx=\"7315200\" cy=\"365760\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/></p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:pPr algn=\"ctr\"/><a:r><a:rPr lang=\"en-US\" sz=\"1100\" dirty=\"0\"><a:solidFill><a:srgbClr val=\"88AACC\"/></a:solidFill></a:rPr><a:t>' + esc(moduleCode + ' | ' + moduleName + ' | Week ' + weekNum) + '</a:t></a:r></a:p></p:txBody></p:sp>' +\n  '</p:spTree></p:cSld></p:sld>');\n}\n\n// ---- Build PPTX (ZIP) ----\nvar slideCount = slides.length;\n\n// Relationships for slides in presentation.xml.rels\nvar presRels = '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">';\nfor (var i = 0; i < slideCount; i++) {\n  presRels += '<Relationship Id=\"rId' + (i+1) + '\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide\" Target=\"slides/slide' + (i+1) + '.xml\"/>';\n}\npresRels += '<Relationship Id=\"rId' + (slideCount+1) + '\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme\" Target=\"theme/theme1.xml\"/>';\npresRels += '</Relationships>';\n\n// presentation.xml\nvar presXml = '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><p:presentation xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\"><p:sldMasterIdLst/><p:sldIdLst>';\nfor (var i = 0; i < slideCount; i++) {\n  presXml += '<p:sldId id=\"' + (256+i) + '\" r:id=\"rId' + (i+1) + '\"/>';\n}\npresXml += '</p:sldIdLst><p:sldSz cx=\"9144000\" cy=\"6858000\" type=\"screen4x3\"/><p:notesSz cx=\"6858000\" cy=\"9144000\"/></p:presentation>';\n\n// [Content_Types].xml\nvar contentTypes = '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"xml\" ContentType=\"application/xml\"/><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Override PartName=\"/ppt/presentation.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml\"/><Override PartName=\"/ppt/theme/theme1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.theme+xml\"/>';\nfor (var i = 0; i < slideCount; i++) {\n  contentTypes += '<Override PartName=\"/ppt/slides/slide' + (i+1) + '.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.slide+xml\"/>';\n}\ncontentTypes += '</Types>';\n\n// _rels/.rels\nvar rootRels = '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"ppt/presentation.xml\"/></Relationships>';\n\n// theme1.xml (minimal)\nvar themeXml = '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><a:theme xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" name=\"Theme\"><a:themeElements><a:clrScheme name=\"Custom\"><a:dk1><a:srgbClr val=\"000000\"/></a:dk1><a:lt1><a:srgbClr val=\"FFFFFF\"/></a:lt1><a:dk2><a:srgbClr val=\"1E3A5F\"/></a:dk2><a:lt2><a:srgbClr val=\"E7E6E6\"/></a:lt2><a:accent1><a:srgbClr val=\"2B6CB0\"/></a:accent1><a:accent2><a:srgbClr val=\"27AE60\"/></a:accent2><a:accent3><a:srgbClr val=\"E67E22\"/></a:accent3><a:accent4><a:srgbClr val=\"8E44AD\"/></a:accent4><a:accent5><a:srgbClr val=\"2980B9\"/></a:accent5><a:accent6><a:srgbClr val=\"1ABC9C\"/></a:accent6><a:hlink><a:srgbClr val=\"0563C1\"/></a:hlink><a:folHlink><a:srgbClr val=\"954F72\"/></a:folHlink></a:clrScheme><a:fontScheme name=\"Custom\"><a:majorFont><a:latin typeface=\"Calibri\"/><a:ea typeface=\"\"/><a:cs typeface=\"\"/></a:majorFont><a:minorFont><a:latin typeface=\"Calibri\"/><a:ea typeface=\"\"/><a:cs typeface=\"\"/></a:minorFont></a:fontScheme><a:fmtScheme name=\"Custom\"><a:fillStyleLst><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln w=\"6350\"><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill></a:ln><a:ln w=\"6350\"><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill></a:ln><a:ln w=\"6350\"><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>';\n\n// ---- Minimal ZIP builder (store method, no compression) ----\nvar files = [];\nfiles.push({ name: '[Content_Types].xml', data: Buffer.from(contentTypes, 'utf8') });\nfiles.push({ name: '_rels/.rels', data: Buffer.from(rootRels, 'utf8') });\nfiles.push({ name: 'ppt/presentation.xml', data: Buffer.from(presXml, 'utf8') });\nfiles.push({ name: 'ppt/_rels/presentation.xml.rels', data: Buffer.from(presRels, 'utf8') });\nfiles.push({ name: 'ppt/theme/theme1.xml', data: Buffer.from(themeXml, 'utf8') });\nfor (var i = 0; i < slideCount; i++) {\n  files.push({ name: 'ppt/slides/slide' + (i+1) + '.xml', data: Buffer.from(slides[i], 'utf8') });\n}\n\n// ZIP format: local file headers + data, then central directory, then end record\nvar localHeaders = [];\nvar centralHeaders = [];\nvar offset = 0;\n\nfor (var i = 0; i < files.length; i++) {\n  var f = files[i];\n  var nameBytes = Buffer.from(f.name, 'utf8');\n  var crc = crc32(f.data);\n  var size = f.data.length;\n\n  // Local file header (30 bytes + name + data)\n  var local = Buffer.alloc(30 + nameBytes.length);\n  local.writeUInt32LE(0x04034b50, 0); // signature\n  local.writeUInt16LE(20, 4); // version needed\n  local.writeUInt16LE(0, 6); // flags\n  local.writeUInt16LE(0, 8); // compression: stored\n  local.writeUInt16LE(0, 10); // mod time\n  local.writeUInt16LE(0, 12); // mod date\n  local.writeUInt32LE(crc, 14); // crc32\n  local.writeUInt32LE(size, 18); // compressed size\n  local.writeUInt32LE(size, 22); // uncompressed size\n  local.writeUInt16LE(nameBytes.length, 26); // name length\n  local.writeUInt16LE(0, 28); // extra length\n  nameBytes.copy(local, 30);\n\n  localHeaders.push(Buffer.concat([local, f.data]));\n\n  // Central directory header (46 bytes + name)\n  var central = Buffer.alloc(46 + nameBytes.length);\n  central.writeUInt32LE(0x02014b50, 0); // signature\n  central.writeUInt16LE(20, 4); // version made by\n  central.writeUInt16LE(20, 6); // version needed\n  central.writeUInt16LE(0, 8); // flags\n  central.writeUInt16LE(0, 10); // compression\n  central.writeUInt16LE(0, 12); // mod time\n  central.writeUInt16LE(0, 14); // mod date\n  central.writeUInt32LE(crc, 16); // crc32\n  central.writeUInt32LE(size, 20); // compressed size\n  central.writeUInt32LE(size, 24); // uncompressed size\n  central.writeUInt16LE(nameBytes.length, 28); // name length\n  central.writeUInt16LE(0, 30); // extra length\n  central.writeUInt16LE(0, 32); // comment length\n  central.writeUInt16LE(0, 34); // disk number start\n  central.writeUInt16LE(0, 36); // internal attrs\n  central.writeUInt32LE(0, 38); // external attrs\n  central.writeUInt32LE(offset, 42); // local header offset\n  nameBytes.copy(central, 46);\n\n  centralHeaders.push(central);\n  offset += 30 + nameBytes.length + size;\n}\n\n// CRC32 function\nfunction crc32(buf) {\n  var table = [];\n  for (var n = 0; n < 256; n++) {\n    var c = n;\n    for (var k = 0; k < 8; k++) { c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); }\n    table[n] = c;\n  }\n  var crc = 0xFFFFFFFF;\n  for (var i = 0; i < buf.length; i++) { crc = table[(crc ^ buf[i]) & 0xFF] ^ (crc >>> 8); }\n  return (crc ^ 0xFFFFFFFF) >>> 0;\n}\n\nvar localData = Buffer.concat(localHeaders);\nvar centralData = Buffer.concat(centralHeaders);\n\n// End of central directory (22 bytes)\nvar endRecord = Buffer.alloc(22);\nendRecord.writeUInt32LE(0x06054b50, 0);\nendRecord.writeUInt16LE(0, 4); // disk number\nendRecord.writeUInt16LE(0, 6); // disk with central dir\nendRecord.writeUInt16LE(files.length, 8); // entries on disk\nendRecord.writeUInt16LE(files.length, 10); // total entries\nendRecord.writeUInt32LE(centralData.length, 12); // central dir size\nendRecord.writeUInt32LE(localData.length, 16); // central dir offset\nendRecord.writeUInt16LE(0, 20); // comment length\n\nvar zipBuffer = Buffer.concat([localData, centralData, endRecord]);\nvar base64 = zipBuffer.toString('base64');\n\nvar fileName = (moduleCode || 'course').replace(/[^a-zA-Z0-9]/g,'_') + '_Week_' + weekNum + '.pptx';\n\nreturn [{json: { pptxBase64: base64, fileName: fileName, mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' }}];"
+      },
+      "id": "build-pptx",
+      "name": "Build PPTX",
+      "position": [
+        400,
+        400
+      ],
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst item = items[0].json;\nconst base64 = item.pptxBase64;\nconst fileName = item.fileName || 'slides.pptx';\nconst mimeType = item.mimeType || 'application/vnd.openxmlformats-officedocument.presentationml.presentation';\n\nconst pptxBuffer = Buffer.from(base64, 'base64');\nconst binaryData = await this.helpers.prepareBinaryData(pptxBuffer, fileName, mimeType);\n\nreturn [{\n  json: { fileName },\n  binary: { data: binaryData }\n}];"
+      },
+      "id": "prepare-binary",
+      "name": "Prepare PPTX Binary",
+      "position": [
+        650,
+        400
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    }
+  ],
+  "connections": {
+    "Webhook - Slides": {
+      "main": [
+        [
+          {
+            "node": "Fetch Week",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Week": {
+      "main": [
+        [
+          {
+            "node": "Fetch Course",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Course": {
+      "main": [
+        [
+          {
+            "node": "Build PPTX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build PPTX": {
+      "main": [
+        [
+          {
+            "node": "Prepare PPTX Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

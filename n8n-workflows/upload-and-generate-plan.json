@@ -1,0 +1,295 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "teaching-genome/upload-generate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook - Upload",
+      "position": [
+        -352,
+        0
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "5e3dcd4d-ec02-4d72-aed1-1abcd43fb73c"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "modelId": {
+          "__rl": true,
+          "cachedResultName": "models/gemini-2.5-flash",
+          "mode": "list",
+          "value": "models/gemini-2.5-flash"
+        },
+        "text": "                                                                               \n  You are an expert university curriculum designer. Analyze the provided course\n  descriptor PDF and create a comprehensive 14-week teaching plan.              \n                                                                                \n  Course Details:\n  - Cohort: ${$('Webhook - Upload').item.json.body.cohort_type}\n  - Module: ${$('Webhook - Upload').item.json.body.module_name}\n  - Teaching Style: ${$('Webhook - Upload').item.json.body.teaching_style}\n  - Pace: ${$('Webhook - Upload').item.json.body.pace}\n\n  Instructions:\n  1. Carefully read the course descriptor to extract real topics, not generic\n  ones\n  2. Distribute content evenly and logically across 14 weeks\n  3. Ensure each week builds on the previous week\n  4. Align learning objectives with Bloom's Taxonomy action verbs\n  5. Match assessment methods to the teaching style provided\n  6. For teaching_notes, write a detailed strategy telling the lecturer exactly\n  how to deliver this week: what to emphasize, how to engage students,\n  real-world examples to use, common misconceptions to address, and a suggested\n  timing breakdown for the session\n  7. For activity_ideas, provide specific hands-on activities with clear\n  instructions the lecturer can follow\n  8. Do not use contractions (write \"do not\" instead of \"don't\", \"it is\" instead\n   of \"it's\")\n  9. Do not use apostrophes or single quotes anywhere in any text value\n  10. Return ONLY a raw JSON array with no markdown, no code fences, no\n  explanation\n\n  Return this exact structure:\n  [\n    {\n      \"week_number\": 1,\n      \"topic\": \"string - descriptive week title\",\n      \"discussion_prompts\": [\"string\", \"string\", \"string\"],\n      \"learning_objectives\": [\"string\", \"string\", \"string\"],\n      \"teaching_methods\": \"string - the delivery method such as lecture, flipped\n   classroom, workshop, debate, simulation\",\n      \"teaching_notes\": \"string - detailed 2-3 paragraph teaching strategy for\n  the lecturer covering how to deliver the session, what to emphasize,\n  real-world examples, common misconceptions, and suggested timing breakdown\",\n      \"activity_ideas\": [\"string - specific activity with clear instructions\",\n  \"string\", \"string\"]\n    }\n  ]\n\n  Rules:\n  - week_number must be integers 1 through 14\n  - discussion_prompts must have 3 to 6 items per week\n  - learning_objectives must have 3 to 5 items per week\n  - teaching_methods must be a single string describing the delivery method, not\n   activities\n  - teaching_notes must be a detailed multi-sentence strategy for the lecturer\n  - activity_ideas must have 2 to 4 specific activities per week with clear\n  instructions\n  - No trailing commas\n  - No special characters except standard punctuation\n  - Output must be parseable by JSON.parse() with zero modifications",
+        "documentUrls": "={{ $('Webhook - Upload').item.json.body.pdf_url }}",
+        "options": {}
+      },
+      "id": "a2fc0183-47bd-4d51-a40c-14776dc57109",
+      "name": "Analyze document",
+      "position": [
+        528,
+        0
+      ],
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "retryOnFail": true,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "q4jftlU0gcxAxauk",
+          "name": "Google Gemini(PaLM) Api account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ok: true, weeks_generated: 14, message: \"14-week plan generated and saved\"}) }}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Return Success",
+      "position": [
+        1504,
+        0
+      ],
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5
+    },
+    {
+      "parameters": {
+        "tableId": "courses",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "lecturer_id",
+              "fieldValue": "={{ $('Webhook - Upload').item.json.body.lecturer_id }}"
+            },
+            {
+              "fieldId": "module_name",
+              "fieldValue": "={{ $('Webhook - Upload').item.json.body.module_name }}"
+            },
+            {
+              "fieldId": "cohort_type",
+              "fieldValue": "={{ $('Webhook - Upload').item.json.body.cohort_type }}"
+            },
+            {
+              "fieldId": "module_descriptor_pdf_url",
+              "fieldValue": "={{ $('Webhook - Upload').item.json.body.pdf_url }}"
+            },
+            {
+              "fieldId": "preferences",
+              "fieldValue": "={{ {\"teaching_style\": $('Webhook - Upload').item.json.body.teaching_style, \"pace\": $('Webhook - Upload').item.json.body.pace} }}"
+            },
+            {
+              "fieldId": "module_code",
+              "fieldValue": "={{ $('Webhook - Upload').item.json.body.course_id }}"
+            },
+            {
+              "fieldId": "academic_year",
+              "fieldValue": "={{ $('Webhook - Upload').item.json.body.academic_year }}"
+            },
+            {
+              "fieldId": "semester",
+              "fieldValue": "={{ $('Webhook - Upload').item.json.body.semester }}"
+            }
+          ]
+        }
+      },
+      "id": "0739ede4-f48a-4492-acda-f4be43bf2ff1",
+      "name": "Create a row1",
+      "position": [
+        0,
+        112
+      ],
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "credentials": {
+        "supabaseApi": {
+          "id": "eHHXhURm2Aj97kMJ",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "weeks",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "course_id",
+              "fieldValue": "={{ $('Webhook - Upload').item.json.body.course_id }}"
+            },
+            {
+              "fieldId": "week_number",
+              "fieldValue": "={{ $json.week_number }}"
+            },
+            {
+              "fieldId": "topic",
+              "fieldValue": "={{ $json.topic }}"
+            },
+            {
+              "fieldId": "learning_objectives",
+              "fieldValue": "={{ JSON.stringify($json.learning_objectives) }}"
+            },
+            {
+              "fieldId": "teaching_methods",
+              "fieldValue": "= {{ $json.teaching_methods }}"
+            },
+            {
+              "fieldId": "content_summary",
+              "fieldValue": "={{ $json.content_summary }}"
+            },
+            {
+              "fieldId": "discussion_prompts",
+              "fieldValue": "={{ JSON.stringify($json.discussion_prompts) }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "draft"
+            },
+            {
+              "fieldId": "teaching_notes",
+              "fieldValue": "={{ $json.teaching_notes }}"
+            },
+            {
+              "fieldId": "activity_ideas",
+              "fieldValue": "={{ JSON.stringify($json.activity_ideas) }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        80
+      ],
+      "id": "c01f7278-1879-4a18-9abb-a6f9560a050b",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "eHHXhURm2Aj97kMJ",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "21ed839c-efae-4ff9-a342-5db0b6f8a49e",
+      "name": "Loop - Create Weeks1",
+      "position": [
+        880,
+        -16
+      ],
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.content.parts[0].text;\n\n  let cleaned = raw\n    .replace(/```json\\n?/g, '')\n    .replace(/```\\n?/g, '')\n    .trim();\n\n  const arrayMatch = cleaned.match(/\\[[\\s\\S]*\\]/);\n  if (!arrayMatch) throw new Error('No JSON array found in Gemini response');\n  cleaned = arrayMatch[0];\n\n  const weeks = JSON.parse(cleaned);\n\n  return weeks.map(week => {\n    const prompts = Array.isArray(week.discussion_prompts) ?\n  week.discussion_prompts : [];\n    const activities = Array.isArray(week.activity_ideas) ? week.activity_ideas\n  : [];\n    return { json: {\n      week_number: week.week_number,\n      topic: week.topic || '',\n      discussion_prompts: prompts,\n      learning_objectives: week.learning_objectives || [],\n      teaching_methods: week.teaching_methods || '',\n      teaching_notes: week.teaching_notes || '',\n      activity_ideas: activities,\n      content_summary: prompts.join(', ')\n    } };\n  });\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        -16
+      ],
+      "id": "cc6e9647-a3e5-47b4-85c8-c561ab88a570",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "connections": {
+    "Webhook - Upload": {
+      "main": [
+        [
+          {
+            "node": "Create a row1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze document": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Return Success": {
+      "main": [
+        []
+      ]
+    },
+    "Create a row1": {
+      "main": [
+        [
+          {
+            "node": "Analyze document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row": {
+      "main": [
+        [
+          {
+            "node": "Loop - Create Weeks1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop - Create Weeks1": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Loop - Create Weeks1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c17f00b34868276d94ac12e8d2f1d58624e5971e1bc161a8f1af63ff755dd073"
+  }
+}
