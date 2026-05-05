@@ -5,7 +5,7 @@
 Generate complete 14-week lesson plans with beautiful PDF slides in **minutes**, not weeks.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Open Source](https://img.shields.io/badge/Open-Source-brightgreen)](https://github.com/anasaleryani/teaching-genome)
+[![Open Source](https://img.shields.io/badge/Open-Source-brightgreen)](https://github.com/anas318/teaching-genome)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 
@@ -38,7 +38,7 @@ Generate complete 14-week lesson plans with beautiful PDF slides in **minutes**,
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/anasaleryani/teaching-genome.git
+git clone https://github.com/anas318/teaching-genome.git
 cd teaching-genome
 
 # 2. Install dependencies
@@ -204,10 +204,10 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
 
 ### Good First Issues
 Looking to contribute? Start with these:
-- [ ] [Add dark mode support](https://github.com/anasaleryani/teaching-genome/issues)
-- [ ] [Improve README with demo video](https://github.com/anasaleryani/teaching-genome/issues)
-- [ ] [Add Spanish language support](https://github.com/anasaleryani/teaching-genome/issues)
-- [ ] [Create Docker setup guide](https://github.com/anasaleryani/teaching-genome/issues)
+- [ ] [Add dark mode support](https://github.com/anas318/teaching-genome/issues)
+- [ ] [Improve README with demo video](https://github.com/anas318/teaching-genome/issues)
+- [ ] [Add Spanish language support](https://github.com/anas318/teaching-genome/issues)
+- [ ] [Create Docker setup guide](https://github.com/anas318/teaching-genome/issues)
 
 ---
 
@@ -238,9 +238,9 @@ The only requirement: include the license notice.
 
 ### Getting Help
 1. **Check the [Setup Guide](./docs/SETUP.md)**
-2. **Search [existing issues](https://github.com/anasaleryani/teaching-genome/issues)**
-3. **Join [Discussions](https://github.com/anasaleryani/teaching-genome/discussions)**
-4. **Report a bug** via [Issues](https://github.com/anasaleryani/teaching-genome/issues/new)
+2. **Search [existing issues](https://github.com/anas318/teaching-genome/issues)**
+3. **Join [Discussions](https://github.com/anas318/teaching-genome/discussions)**
+4. **Report a bug** via [Issues](https://github.com/anas318/teaching-genome/issues/new)
 
 ### Found a Bug?
 Please open an issue with:
@@ -265,9 +265,9 @@ Your support helps us reach more teachers! 🙌
 
 ## 📊 Project Stats
 
-![GitHub stars](https://img.shields.io/github/stars/anasaleryani/teaching-genome?style=social)
-![GitHub forks](https://img.shields.io/github/forks/anasaleryani/teaching-genome?style=social)
-![GitHub issues](https://img.shields.io/github/issues/anasaleryani/teaching-genome)
+![GitHub stars](https://img.shields.io/github/stars/anas318/teaching-genome?style=social)
+![GitHub forks](https://img.shields.io/github/forks/anas318/teaching-genome?style=social)
+![GitHub issues](https://img.shields.io/github/issues/anas318/teaching-genome)
 
 ---
 
@@ -283,6 +283,6 @@ Teaching Genome is part of the movement to democratize education technology. We 
 
 **Made with ❤️ for educators worldwide**
 
-[Get Started](#-quick-start) • [Documentation](./docs/) • [Contribute](./CONTRIBUTING.md) • [Discuss](https://github.com/anasaleryani/teaching-genome/discussions)
+[Get Started](#-quick-start) • [Documentation](./docs/) • [Contribute](./CONTRIBUTING.md) • [Discuss](https://github.com/anas318/teaching-genome/discussions)
 
 </div>
