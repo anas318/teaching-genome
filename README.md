@@ -185,24 +185,7 @@ AI-generated strategies tailored to the course context.
 - ✅ Basic UI
 
 ### v1.1 (Next)
-- [ ] Multi-language support (Spanish, French, Mandarin, etc.)
-- [ ] Accessibility features (WCAG 2.1 AA)
-- [ ] Dark mode
-- [ ] Export to DOCX, Google Slides
-
-### v2.0 (Future)
-- [ ] LMS integrations (Canvas, Blackboard, Moodle)
-- [ ] Student materials generation
-- [ ] Quiz/assessment generation
-- [ ] Calendar sync (Google, Outlook)
-- [ ] Collaborative course editing
-- [ ] Real-time collaboration
-
-### v3.0 (Vision)
-- [ ] Sign language video generation (accessibility)
-- [ ] Multi-modal content (audio, video, interactive)
-- [ ] Adaptive learning paths per student
-- [ ] Predictive student outcome modeling
+- [ ] Semester reflection and evaluation suggestions
 
 ---
 
@@ -225,15 +208,6 @@ Looking to contribute? Start with these:
 - [ ] [Improve README with demo video](https://github.com/anasaleryani/teaching-genome/issues)
 - [ ] [Add Spanish language support](https://github.com/anasaleryani/teaching-genome/issues)
 - [ ] [Create Docker setup guide](https://github.com/anasaleryani/teaching-genome/issues)
-
----
-
-## 💬 Community
-
-- **Discord**: [Join our community](https://discord.gg/teaching-genome) (coming soon)
-- **Discussions**: [GitHub Discussions](https://github.com/anasaleryani/teaching-genome/discussions)
-- **Twitter**: [@TeachingGenome](https://twitter.com/teachinggenome)
-- **Email**: hello@teachinggenome.dev
 
 ---
 
